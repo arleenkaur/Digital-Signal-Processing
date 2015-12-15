@@ -1,0 +1,197 @@
+MATLAB codes:
+Sampling:
+clc;
+clear all;
+close all;
+
+%sine wave generation
+
+tfinal=0.05;            % Initialization of time period
+t=0:0.00005:tfinal;
+
+fd=input('enter the analog frequency of the signal');
+
+xt= input('enter the input signal'); %   Eg: sin(2*pi*fd*t) ;           % sine wave 
+
+dft_xt=fft(xt);
+% Case 1 : Under Sampling (fs < 2fd)
+
+fs1=1.3 * fd;
+n1= 0:(1/fs1):tfinal;
+
+xn1=sin(4*pi*fd*n1);        % under sampled signal
+figure;
+% subplot(3,1,1) 
+plot(t,xt,'b',n1,xn1,'r*-');
+
+xlabel('time');
+ylabel('amplitude');
+title(' Under Sampling');
+
+
+% Case 2 : Perfect Sampling (Nyquist criteria --> fs=2*fd)
+
+fs2=2 * fd;
+n2= 0:(1/fs2):tfinal;
+
+xn2= sin(4*pi*fd*n2);        % perfectly sampled signal
+
+figure;
+% subplot(3,1,2)
+plot(t,xt,'b',n2,xn2,'c*-');
+
+xlabel('time');
+ylabel('amplitude');
+title(' Perefect Sampling');
+
+
+
+% Over Sampling (fs>> 2fd)
+
+fs3= 10 * fd;
+n3= 0:(1/fs3):tfinal;
+
+xn3=sin(4*pi*fd*n3);        % over sampled signal
+
+figure;
+% subplot(3,1,3)
+plot(t,xt,'b',n3,xn3,'g*-');
+
+xlabel('time');
+ylabel('amplitude');
+title(' Over Sampling');
+
+
+
+C=dftnew(xn2);   % DFT of sampled signal
+
+K=log(abs(C));  % magnitude plot
+
+L=angle(C);     % phase plot
+
+figure;
+stem(dft_xt);title('DFT of analog signal before Sampling');
+figure;
+stem(C);title('dft of SAMPLED signal')
+figure;
+plot(K);title('magnitude');
+figure;
+stem(L);title('phase');
+
+
+Matlab code for Function “ dftnew” :
+function [Xk] = dftnew(xn)
+
+N = length(xn);
+ n = 0:1:N-1;
+k = 0:1:N-1;
+WN = exp(-1i*2*pi/N);
+nk = n'*k;
+WNnk = WN.^nk;
+
+Xk = WNnk.*xn.*WNnk.';
+
+Quantization:
+clc;
+clear all;
+close all;
+
+
+b=8;  
+% N=120;% Number of bits.
+N=input('Enter the number of samples you need in final signal');                          % Number of samples in final signal.
+n=0:(N-1);                      % Index n
+
+% Choose the input type.
+choice = questdlg('Choose input','Input',...
+    'Sine','Sawtooth','Random','Random');
+
+fprintf('Bits = %g, levels = %g, signal = %s.\n', b, 2^b, choice);                      % printing the choice
+
+% Create the  input data sequence.
+switch choice                               % Switch function provided to choose the input signal
+    case 'Sine'
+        y=sin(2*pi*n/N);                    % sine wave
+    case 'Sawtooth'
+        y=sawtooth(2*pi*n/N);               % sawtooth wave
+    case 'Random'
+        y=randn(1,N);                       % Random data
+        y=y/max(abs(y));                    %  Scaled to +/- 1
+end
+
+% Signal is restricted to values between -1 and +1
+y(y>=1)=(1-eps);            % Make the  input  signal from -1 to just less than 1.
+y(y<-1)=-1;
+
+% Quantization of the signal to "b" bits.  
+y_quant=floor((y+1)*2^(b-1));    % Signal is one of 2^n int values (0 to 2^n-1)
+y_quant=y_quant/(2^(b-1));            % Signal is from 0 to 2 (quantized)
+y_quant=(y_quant)-(2^(b)-1)/2^(b);      % Shift signal down (rounding)
+
+q_error=y-y_quant;                    % Quantization error
+
+stem(y,'g');
+hold on;                               % plot of signal
+
+stem(y_quant,'b');                     % plot of quantization
+hold on;
+
+stem(q_error,'r');                     % plot of quantization error
+
+legend('Signal','quantized signal','quant error','Location','Southeast')
+
+title(sprintf('Signal, Quantizaton, Quantization error',b,2^b));
+
+hold off
+
+
+
+
+
+
+
+MSE = mean(mean((y-(y_quant)).^2));
+disp('MSE=');
+disp(MSE);
+m1=mean(mean(y));
+SF=mean(mean(y-m1).^2);
+SNR= 10 * log (SF/MSE);
+disp(SNR);
+h3=sqrt(MSE);
+PSNR=10* log ((255.^2)/h3);
+disp('PSNR=');
+disp(PSNR);
+
+
+ 
+
+Image Quantization :
+clc;
+clear all;
+close all;
+x = imread('lena.jpg');
+
+
+figure(2),imshow(x);
+[height, width] = size(x);
+x=double(x);
+
+B = 256;
+% Q is the quantization table
+Q = zeros(height, 1);
+% Quantized to levels L
+L = 8;
+q = B / L;
+for i = 0:255,
+Q(i+1, 1) = floor(i / q) * q + q /2;
+end
+y = zeros(size(x));
+for i = 1:height,
+for j = 1:width,
+y(i, j) = Q(x(i,j) + 1);
+end
+end
+figure(3),imshow(uint8(y)), title('B=1024');
+
+
+
