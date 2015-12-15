@@ -1,0 +1,90 @@
+%% %%  main
+[MJ,f]=wavread('mj.wav');
+sound(MJ,f);
+%%adding wgn
+y=awgn(MJ,5);
+sound(y,f);
+ %% %%%  Butter Filter stop wgn
+wn=[0.1 0.5];
+[b,a] = butter(5,wn, 'stop');
+p = filtfilt(b, a, y);
+sound(p,f);
+ smallrange=100000:100000+floor(f/200);
+figure(1);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,y(smallrange)),subplot(3,1,3),plot(smallrange,p(smallrange));
+%% %%% Cheby2 Filter stop wgn
+wn=[0.1 0.5];
+[b,a] = cheby2(5,20,wn, 'stop');
+q = filtfilt(b, a, y);
+sound(q,f);
+figure(2);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,y(smallrange)),subplot(3,1,3),plot(smallrange,q(smallrange));
+%% %%%Butter Filter low wgn
+[b,a] = butter(5,0.5, 'low');
+r = filtfilt(b, a, y);
+sound(r,f);
+figure(3);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,y(smallrange)),subplot(3,1,3),plot(smallrange,r(smallrange));
+%% %%%Cheby2 Filter low wgn
+[b,a] = cheby2(5,20,0.5, 'low');
+s = filtfilt(b, a, y);
+sound(s,f);
+figure(4);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,y(smallrange)),subplot(3,1,3),plot(smallrange,s(smallrange));
+%% %%adding rand
+random=randn(669312,2);
+k=MJ+random;
+sound(k,f);
+%% %%Butter Filter stop rand
+wn=[0.1 0.5];
+[b,a] = butter(5,wn, 'stop');
+x = filtfilt(b, a, k);
+sound(x,f);
+figure(5);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,k(smallrange)),subplot(3,1,3),plot(smallrange,x(smallrange));
+%% %%% Cheby2 Filter stop rand
+wn=[0.1 0.5];
+[b,a] = cheby2(5,20,wn, 'stop');
+z = filtfilt(b, a, k);
+sound(z,f);
+figure(6);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,k(smallrange)),subplot(3,1,3),plot(smallrange,z(smallrange));
+ %% %%%Cheby2 Filter low rand
+[b,a] = cheby2(5,20,0.5, 'low');
+v = filtfilt(b, a, k);
+sound(v,f);
+figure(8);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,k(smallrange)),subplot(3,1,3),plot(smallrange,v(smallrange));
+%% %%Butter Filter low rand
+[b,a] = butter(5,0.5, 'low');
+u = filtfilt(b, a, k);
+sound(u,f);
+figure(7);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,k(smallrange)),subplot(3,1,3),plot(smallrange,u(smallrange));
+%% %%%Butter Filter high wgn
+[b,a] = butter(5,0.5, 'high');
+g = filtfilt(b, a, y);
+sound(g,f);
+figure(9);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,y(smallrange)),subplot(3,1,3),plot(smallrange,g(smallrange));
+%% %%%Cheby2 Filter high wgn
+[b,a] = cheby2(5,20,0.5, 'high');
+e = filtfilt(b, a, y);
+ sound(e,f);
+figure(10);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,y(smallrange)),subplot(3,1,3),plot(smallrange,e(smallrange));
+%% %%Butter Filter high rand
+[b,a] = butter(5,0.5, 'high');
+i = filtfilt(b, a, k);
+sound(i,f);
+figure(11);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,k(smallrange)),subplot(3,1,3),plot(smallrange,i(smallrange));
+ %% %%%Cheby2 Filter high rand
+[b,a] = cheby2(5,20,0.5, 'high');
+j = filtfilt(b, a, k);
+sound(j,f);
+figure(12);
+subplot(3,1,1),plot(smallrange,MJ(smallrange)),subplot(3,1,2),plot(smallrange,k(smallrange)),subplot(3,1,3),plot(smallrange,j(smallrange));
+
+
+
