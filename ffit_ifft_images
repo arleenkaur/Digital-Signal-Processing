@@ -1,0 +1,87 @@
+MATLab Code
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% This program filters a specified
+% image using two methods for a 
+% low-pass filter and a high-pass
+% filter.  It achieves this by using 
+% the fft2() function and the ifft2()
+% function.  The filtered images are displayed.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+% Load the image
+img = imread('field.jpg');
+fxy = img(1:512,1:512);
+ 
+% Show the original image
+subplot(2,2,1); imshow(fxy)
+ 
+FXY = fftshift(fft2(fxy));
+ 
+% Show the freqnecy-domain image
+subplot(2,2,3); imshow(abs(FXY), gray(512));
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Low-Pass Filter Method 1
+H1 = zeros(512,512);
+for u = 1:512
+    for v = 1:512
+        d0 = sqrt((u-256)^2 + (v-256)^2);
+        if (d0 <= 64)
+            H1(u,v) = 1;
+        end
+    end
+end
+ 
+% Show the filter
+subplot(2,2,4); imshow(H1);
+ 
+lGXY1 = FXY.*H1;
+lgxy1 = ifft2(lGXY1);
+ 
+% Show the filtered image
+subplot(2,2,2); imshow(abs(lgxy1),gray(512));
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Low-Pass Filter Method 2
+H2 = zeros(512,512);
+H2(256-64:256+64,256-64:256+64) = 1;
+ 
+subplot(2,2,4); imshow(H2);
+ 
+lGXY2 = FXY.*H2;
+lgxy2 = ifft2(lGXY2);
+ 
+subplot(2,2,2); imshow(abs(lgxy2),gray(512));
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+% High-Pass Filter Method 1
+H3 = zeros(512,512);
+for u = 1:512
+    for v = 1:512
+        d0 = sqrt((u-256)^2 + (v-256)^2);
+        if (d0 >= 2)
+            H3(u,v) = 1;
+        end
+    end
+end
+ 
+subplot(2,2,4); imshow(H3);
+ 
+hGXY1 = FXY.*H3;
+hgxy1 = ifft2(hGXY1);
+ 
+subplot(2,2,2); imshow(abs(hgxy1),gray(512));
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+% High-Pass Filter Method 2
+H4 = ones(512,512);
+H4(256-2:256+2,256-2:256+2) = 0;
+ 
+subplot(2,2,4); imshow(H4);
+ 
+hGXY2 = FXY.*H4;
+hgxy2 = ifft2(hGXY2);
+ 
+subplot(2,2,2); imshow(abs(hgxy2),gray(512));
+
