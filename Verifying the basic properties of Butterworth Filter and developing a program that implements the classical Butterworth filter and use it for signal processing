@@ -1,0 +1,312 @@
+
+Low Pass Butterworth Filter which filters Sine wave:
+
+all clear;
+all close;
+t = linspace(0,2*pi,100);
+ 
+y_orig = 5*sin(2*pi*t);   % signal
+noise = 3*sin(100*2*pi*t);   % noise
+ 
+y = y_orig + noise;
+ 
+figure(1);
+subplot(411),plot(t, y_orig),title('Original signal'); grid on; 
+subplot(412),plot(t,noise),title('Noise'); grid on; 
+subplot(413),plot(t,y),title('Original signal with noise'); grid on; 
+ 
+ 
+Y = fft(y);
+ 
+subplot(414);
+plot(abs(Y)),title('Signal with noise in frequency domain');grid on
+ 
+%% Butterworth low pass filter specifications
+ 
+w = linspace(0,1*pi,100);
+f_cutoff = 10;        % on the scale of 100 where n =100
+n=100;
+w_cutoff = f_cutoff*pi/n;   
+ 
+N = 4;           % filter order
+ 
+filter = sqrt(1./(1+(w/w_cutoff).^(2*N)));
+ 
+out_freq = Y.*filter;
+ 
+figure()
+ 
+subplot(311),plot(abs(filter)),title('Filter design');
+subplot(312),plot(abs(out_freq)),title('Filtered output frequency domain');
+ 
+out_time = ifft(((out_freq)));
+m = max(abs(out_time));
+M = max(real(out_time));
+ 
+subplot(313),plot(m*real(out_time)./M);title(filtered output in time domain');
+
+High Pass Butterworth Filter for sine Input:
+
+all clear;
+all close;
+t = linspace(0,2*pi,100);
+ 
+y_orig = 5*sin(2*pi*t);   % signal
+noise = 3*sin(100*2*pi*t);   % noise
+ 
+y = y_orig + noise;
+ 
+figure(1);
+subplot(411),plot(t, y_orig),title('Original signal'); grid on; 
+subplot(412),plot(t,noise),title('Noise'); grid on; 
+subplot(413),plot(t,y),title('Original signal with noise'); grid on; 
+ 
+ 
+Y = fft(y);
+ 
+subplot(414);
+plot(abs(Y)),title('Signal with noise in frequency domain');grid on
+ 
+%% Butterworth low pass filter specifications
+ 
+w = linspace(0,1*pi,100);
+f_cutoff = 10;        % on the scale of 100 where n =100
+n=100;
+w_cutoff = f_cutoff*pi/n;   
+ 
+N = 5;           % filter order
+ 
+filter = sqrt(1./(1+(w/w_cutoff).^(-2*N)));
+High=1-filter;
+ 
+out_freq = Y.*High;
+ 
+figure()
+ 
+subplot(311),plot(abs(filter)),title('Filter design');
+subplot(312),plot(abs(out_freq)),title('Filtered output frequency domain');
+ 
+out_time = ifft(((out_freq)));
+m = max(abs(out_time));
+M = max(real(out_time));
+ 
+subplot(313),plot(m*real(out_time)./M);title('Filterd output in time domain');
+ 
+
+
+
+Low Pass Butterworth Filter with Audio Input: 
+
+clear all;
+close all;
+clc;
+ 
+%% Read the input
+[f, fs] = audioread('HBD.wav');
+N = length(f);
+ 
+%% Playing the audio
+disp('playing original sound');
+player1 = audioplayer(f,fs);
+play(player1);
+pause(6);
+stop(player1);
+%% Plot the original signal in time domain
+subplot(321);
+plot(1:N, f,'r'),title('Input signal in time domain');
+ 
+ 
+%% Plot the spectrum
+F = fft(f);
+subplot(322),plot(abs(F)),title('Input signal in frequency domain');
+ 
+%% Adding noise to the sound
+f = f + 0.01*randn(size(f));
+disp('Playing sound with noise');
+player1 = audioplayer(f,fs);
+play(player1);
+pause(2);
+stop(player1);
+%sound(f,fs);
+%pause(10);
+ 
+audiowrite('noisy_input.wav',f,fs);
+ 
+%% Plot the signal with noise in time domain
+subplot(323);
+plot(1:N, f,'r'),title('Noisy signal in time domain');
+ 
+ 
+%% Plot the spectrum
+F = fft(f);
+subplot(324),plot(abs(F)),title('Noisy signal in frequency domain');
+ 
+%% Design a lowpass filter that filters out anything after 20000 Hz
+w = linspace(0,1*pi,N);
+fc = 20000;        
+wc = fc*pi/N;   
+ 
+order = 1;           % filter order
+ 
+filter = sqrt(1./(1+(w/wc).^(2*order)));
+ 
+ 
+ 
+%% Filter the signal
+%fOut = filter(b, a, f);
+ 
+fOut = F'.*filter;   % filtered signal in freq domain
+ 
+fOut_tim = ifft(((fOut)));
+m = max(abs(fOut_tim));
+M = max(real(fOut_tim));
+fOut_time_normalised = m*real(fOut_tim)./M;
+ 
+%% Plotting the results
+subplot(325),plot(1:N, fOut_time_normalised, 'r'),title('Output signal in time domain');
+subplot(326),plot(abs(fOut)),title('Output signal in frequency domain');
+ 
+ 
+%% Construct audioplayer object and play
+p = audioplayer(fOut_time_normalised, fs);
+play(p);
+audiowrite('output_20000_1.wav', fOut_time_normalised, fs);
+pause(2);
+stop(p);
+ 
+%% Displaying the filter and frequency plots in a separate figure
+figure
+subplot(311),plot(abs(F)),title('Input signal');
+subplot(312),plot(abs(filter)),title('Filter');
+subplot(313),plot(abs(fOut)),title('Output signal');
+
+
+Low Pass Butterworth Filter with grayscale image as input with Gaussian Noise:
+%% Low-Pass Filter
+clear all;
+clc;
+close all;
+ 
+%% reading image (grayscale)
+I_orig = imread('logo.jpg');
+I_orig = rgb2gray(I_orig);
+ 
+[M,N] = size(I_orig);
+ 
+%% Image in frequency domain
+F = fft2(I_orig);
+F = fftshift(F); % Center FFT
+ 
+F = abs(F); % Get the magnitude
+F = log(double(F+1)); % Use log, for perceptual scaling, and +1 since log(0) is undefined
+F = mat2gray(F); % Use mat2gray to scale the image between 0 and 1
+ 
+imshow(F,[]),title('Input image in frequency domain'); % Display the result
+figure
+ 
+%% adding noise to the image
+I = imnoise(I_orig,'gaussian');
+ 
+%% Finding D(u,v)
+D = zeros(size(I));
+for u = 1:M
+    for v = 1:N
+        D(u,v) = ((u-(M/2))^2 + (v-(N/2))^2)^(1/2);
+    end
+end
+ 
+%% finding H(u,v)
+ 
+distance = 40;
+order = 1/10;
+ 
+H = zeros(size(I));
+for u = 1:M
+    for v = 1:N
+        H(u,v) = 1/(1 + (D(u,v)/distance)^2*order);
+    end
+end
+ 
+mesh(H);
+figure
+ 
+%% Processing
+F = fft2(I);
+F = fftshift(F);
+Y  = F.*H;
+ 
+ 
+Y1 = ifftshift(Y);
+ 
+y = ifft2(Y1);
+ 
+%% Displaying results
+subplot(131),imshow(I_orig),title('Original image');
+subplot(132),imshow(I),title('Original Image with noise');
+subplot(133),imshow(uint8(y)),title('Output image');
+
+High Pass Butterworth Filter with grayscale image as input with Gaussian Noise:
+
+%% Low-Pass Filter
+clear all;
+clc;
+close all;
+ 
+%% reading image (grayscale)
+I_orig = imread('logo.jpg');
+I_orig = rgb2gray(I_orig);
+ 
+[M,N] = size(I_orig);
+ 
+%% Image in frequency domain
+F = fft2(I_orig);
+F = fftshift(F); % Center FFT
+ 
+F = abs(F); % Get the magnitude
+F = log(double(F+1)); % Use log, for perceptual scaling, and +1 since log(0) is undefined
+F = mat2gray(F); % Use mat2gray to scale the image between 0 and 1
+ 
+imshow(F,[]),title('Input image in frequency domain'); % Display the result
+figure
+ 
+%% adding noise to the image
+I = imnoise(I_orig,'gaussian');
+ 
+%% Finding D(u,v)
+D = zeros(size(I));
+for u = 1:M
+    for v = 1:N
+        D(u,v) = ((u-(M/2))^2 + (v-(N/2))^2)^(1/2);
+    end
+end
+ 
+%% finding H(u,v)
+ 
+distance = 40;
+order = 10/10;
+ 
+H = zeros(size(I));
+for u = 1:M
+    for v = 1:N
+        H(u,v) = 1/(1 + (D(u,v)/distance)^(2)*order);
+        l(u,v) = 1-H(u,v);
+    end
+end
+ 
+mesh(l);
+figure
+ 
+%% Processing
+F = fft2(I);
+F = fftshift(F);
+Y  = F.*l;
+ 
+ 
+Y1 = ifftshift(Y);
+ 
+y = ifft2(Y1);
+ 
+%% Displaying results
+subplot(131),imshow(I_orig),title('Original image');
+subplot(132),imshow(I),title('Original Image with noise');
+subplot(133),imshow(uint8(y)),title('Output image');
