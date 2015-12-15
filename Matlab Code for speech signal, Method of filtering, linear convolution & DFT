@@ -1,0 +1,140 @@
+
+clearall; close all; clc;
+
+%---------------------------------------------------
+% Part 1: Reading The Signal
+
+[Signal,Fs,nbits]=wavread('mike.wav');
+% Fs - sampling rate  22050 Hz
+N=length(Signal);       % 854128 
+Time_span = N/Fs;    % 38.7360 sec
+disp('Length of Speech Signal'); disp(N);
+disp('Sampling Frequency'); disp(Fs);
+disp('Window Time Span'); disp(Time_span);
+% sound(Signal,Fs);
+% Viewing The Original Signal
+figure
+plot(Signal);
+title ('Original Speech Signal');
+xlabel('Number of Samples'); ylabel('Amplitude');
+%-------------------------------------------------------------------
+% Part 2: Adding Normal-distribution Noise to The Original Signal
+
+Mn=0;SD=0.01;
+Noise=Mn+SD.*randn(N,1);
+Noisy_signal=Signal+Noise;
+% sound(Noisy_signal,Fs);
+% Viewing The Noisy Signal
+figure
+plot(Noisy_signal);
+title ('Noisy Speech Signal');
+xlabel('Number of Samples'); ylabel('Amplitude');
+%------------------------------------------------------------------
+% Part 3: The Triangle Filter
+
+Filter_triangle=[1;1;2;2;3;3;4;4;5;5;6;6;8;7;7;6;6;5;5;4;4;3;3;2;2;1;1];
+M=length(Filter_triangle);
+% Viewing The Filter
+figure
+stem(Filter_triangle);
+title ('The Triangle Filter');
+xlabel('Number of Samples'); ylabel('Amplitude');
+%------------------------------------------------------------------
+% Part 4: Doing The Convolution by Direct Method
+tic
+x=Signal'; 
+h=Filter_triangle'; h=h/sum(h);
+Output_DirConv=zeros(1,N+M-1);
+fori=1:M+N-1
+conv_sum=0;
+for j=1:M
+if (i-j+1>0) & (i-j+1<=N)
+conv_sum=conv_sum + h(j)*x(i-j+1);
+end
+end
+Output_DirConv(i)=conv_sum;
+end
+Error1=std(Output_DirConv(1:N) - Signal')
+toc
+% Viewing The Direct-convolution Output
+figure
+plot(Output_DirConv);
+title ('The Direct Convolution Output');
+xlabel('Number of Samples'); ylabel('Amplitude');
+% sound(Output,Fs);
+%-------------------------------------------------------------------
+% Part 5: The Filtering of The Noisy Signal by Using FFT
+tic
+fft_signal=fft(x,N+M-1);
+fft_filter=fft(h,N+M-1);
+Conv_freqDmn=fft_signal.*fft_filter;
+Signal_filtered=ifft(Conv_freqDmn);
+Error2=std(Signal_filtered(1:N) - Signal')
+toc
+% Viewing The FFT of Noisy Signal
+figure
+plot(Signal_filtered,'g'); 
+title ('Filtered Signal using FFT');
+xlabel('Number of Samples'); ylabel('Amplitude');
+%sound(Signal_filtered,Fs);
+%-------------------------------------------------------------------
+% Part 6: 
+
+% Convolution using Overlap-save method
+tic
+L=5*Fs;                 % Length of each block
+M1=M-1;
+x=[zeros(1,M1) x zeros(1,L-1)];
+h=[h zeros(1,L-M)];
+Q=L-M+1;
+K=floor((N+M-1)/Q);
+fori=0:K
+xi=x(1,i*Q+1:i*Q+L);
+    q=ifft(fft(xi).*fft(h));
+p(i+1,:)=q;
+end
+p1=p(:,M:L)';
+p=p1(:)';
+Error3=std(p(1:N) - Signal')
+toc
+figure
+plot(p,'k');
+title('Convolution output using Overlap-save method');
+xlabel('Number of Samples'); ylabel('Amplitude');
+
+% Convolution using Overlap-add method
+tic
+M1=M-1;
+R=rem(N,L);
+Q=L+M1;
+x=[x zeros(1,L-R)];
+h=[h zeros(1,Q-M)];
+K=floor(N/L);
+y=zeros(K+1,Q);
+z=zeros(1,M1);
+for k=0:K
+xp=x(L*k+1:L*k+L);
+xk=[xp z];
+    y(k+1,:)=ifft(fft(xk,Q).*fft(h,Q));
+end
+p=L+M1;
+fori=1:K
+    y(i+1,1:M-1)=y(i,p-M1+1:p)+y(i+1,1:M-1);   % Adding the overlap part
+end
+z1=y(:,1:L)';
+y=(z1(:))';
+Error4=std(y(1:N) - Signal')
+toc
+figure
+plot(y,'r')
+title ('Convolution output using Overlap-add method');
+xlabel('Number of Samples'); ylabel('Amplitude');
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
