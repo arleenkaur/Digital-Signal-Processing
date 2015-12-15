@@ -1,0 +1,249 @@
+MATLAB Code:
+%----------------------------------------------------------------------
+% Design of an optimal 1D filter - Weiner filter
+%----------------------------------------------------------------------
+clearall; close all; clc;
+
+%-----------------------------------------------------------------
+% Part 1:
+% Reading the given signal
+fid=fopen('Boli.sig','rb');    % To open the binary signal
+x=fread(fid,'float'); fclose(fid); clear fid;    % To read the file into x
+N=length(x)-1;       % The length of the signal (N=512)
+signal_given=x(1:N)'; clear x;   % The signal to be processed
+
+
+%---------------------------------------------------------------
+% Part 2:
+% Generate the blur signal - Circular convolution between the given signal and the smooth filter 
+filter_smooth= [3 3 2 1 1  zeros(1,N-8)  0 1 2]/13;  % Added zeros to equalize the filter length same as that of the signal
+for n=0:N-1;
+circ_conv_op(n+1)=0;
+fori=0:N-1
+       j=mod(n-i,N);    % calculates the remainder
+       circ_conv_op(n+1)=circ_conv_op(n+1)+signal_given(i+1)*filter_smooth(j+1);  % shifting and adding
+end
+end
+signal_blur=circ_conv_op;
+
+
+%----------------------------------------------------------------
+% Part 3:
+% Adding noise to the blur signal 
+for k=1:4
+noise(k,:) = normrnd(0,2,1,N);    % To generate normal distribution noise
+signal_noisy(k,:) = signal_blur + noise(k,:);
+end
+
+% Finding the Noise-to-Signal ratio
+num=(abs(fft(noise(1,:))).^2+abs(fft(noise(2,:))).^2+abs(fft(noise(3,:))).^2+abs(fft(noise(4,:))).^2)/4;
+den=(abs(fft(signal_given)).^2);
+ratio_NbyO = num./den;
+
+%----------------------------------------------------------------
+% Design of the filters
+%----------------------------------------------------------------
+% Part 4a: Design of an inverse filter 
+H_freq=fft(filter_smooth);     % Transfer the filter into frequency domain
+fori=1:length(H_freq)
+ifH_freq(i)~=0
+Y_inv(i)=1/H_freq(i);
+elseifH_freq(i)==0
+Y_inv(i)=0;
+end
+end
+%----------------------------------------------------------
+% Part 5a: Design of the Weiner filter 
+filter_Weiner=conj(H_freq)./(abs(H_freq).^2+ratio_NbyO);
+%----------------------------------------------------------
+% Part 6a: Design of the Homomorphic filter
+filter_Homo=((conj(H_freq)./(abs(H_freq).^2+ratio_NbyO)).^0.5)./(H_freq.^0.5);
+
+
+
+%----------------------------------------------------------------
+% Apply various filters to reconstruct the signal
+for k=1:4
+
+%---------------------------------------------------------------
+% Part 4b: Apply Inverse filter to restore the signal
+I_freq=fft(signal_noisy(k,:));      % Transform the noisy signal into frequency domain
+I_restored_Inv(k,:) = ifft(I_freq.*Y_inv);
+d_Inv=I_restored_Inv(k,:) - signal_given;
+error_Inv(k)=sqrt(sum(d_Inv.*d_Inv))/N;    % MSRE - mean square root error
+
+%---------------------------------------------------------------
+% Part 5b: Design Weiner filter to restore the signal
+I_restored_Weiner(k,:) = ifft(I_freq.*filter_Weiner);
+d_Wein=I_restored_Weiner(k,:) - signal_given;
+error_Weiner(k)=sqrt(sum(d_Wein.*d_Wein))/N;    % MSRE - mean square root error
+
+%---------------------------------------------------------------
+% Part 6b: Apply Homomorphic filter to restore the signal
+I_restored_Homo(k,:) = ifft(I_freq.*filter_Homo);
+d_Homo=I_restored_Homo(k,:) - signal_given; 
+error_Homo(k)= sqrt(sum(d_Homo.*d_Homo))/N;     % MSRE - mean square root error
+
+end
+
+%----------------------------------------------------------------
+% Displaying the results
+% Viewing the original/given signal
+for k=1:4
+
+figure(k)
+% Viewing the original signal
+subplot(6,1,1); plot(signal_given,'b','LineWidth',1.5);
+axis([0 N -10 35]);
+title ('The Given Signal');
+ylabel('Amplitude');
+% Viewing the circular convolution output
+subplot(6,1,2); plot(signal_blur,'k','LineWidth',1.5);
+axis([0 N -10 35]);
+title ('The Blur Signal');
+ylabel('Amplitude');
+% Viewing the noisy signal
+subplot(6,1,3); plot(signal_noisy(k,:),'r','LineWidth',1.5);
+axis([0 N -10 35]);
+title ('The Noisy Signal');
+ylabel('Amplitude');
+% Viewing the signal restored by Inverse filter
+subplot(6,1,4); plot(I_restored_Inv(k,:),'LineWidth',1.2);
+axis([0 N -60 90]);
+title ('Signal restored by the Inverse filter');
+ylabel('Amplitude');
+% Viewing the signal restored by Weiner filter
+subplot(6,1,5); plot(I_restored_Weiner(k,:),'LineWidth',1.5);
+axis([0 N -10 35]);
+title ('Signal restored by the Weiner filter');
+ylabel('Amplitude');
+% Viewing the signal restored by Homomorphic filter
+subplot(6,1,6); plot(I_restored_Homo(k,:),'LineWidth',1.5);
+axis([0 N -10 35]);
+title ('Signal restored by the Homomorphic filter');
+ylabel('Amplitude');
+
+end
+
+%----------------------------------------------------------------
+% Part 7:
+% Plot the given amplitude response function
+magnitude=(abs(H_freq).^2)./(abs(H_freq).^2+ratio_NbyO);
+figure
+plot(magnitude);
+axis([0 N 0 1]);
+title ('The given amplitude function');
+xlabel('Number of Samples'); ylabel('Magnitude');
+
+%------------------------------------------------------------------
+% Part 8:
+% The Inverse filter characteristics - Relevant plots
+figure
+subplot(5,1,1); plot(-20*log(abs(H_freq))/N);
+axis([0 N 0 0.2]);
+title('Absolute value of the transfer function H(freq)');
+ylabel('-20log(Mag)/N');
+
+subplot(5,1,2); plot(angle(H_freq),'m');
+% axis([0 N -5 5]);
+xlim([0 N]);
+title('Phase of the transfer function H(freq)');
+ylabel('radians');
+
+subplot(5,1,3); plot(-20*log(abs(Y_inv))/N);
+xlim([0 N]);
+title('Absolute value of the Inverse filter transfer function');
+ylabel('-20log(Mag)/N');
+
+subplot(5,1,4); plot(angle(Y_inv),'m');
+axis([0 N -5 5]);
+title('Phase of the transfer function');
+ylabel('radians');
+
+subplot(5,1,5); plot(ifft(Y_inv),'k');
+xlim([0 N]);
+title('Time domain response of the Inverse filter');
+ylabel('Amplitude');
+
+
+% The Weiner filter characteristics - Relevant plots
+figure
+subplot(6,1,1); plot(-20*log(abs(H_freq))/N);
+xlim([0 N]);
+title('Absolute value of the transfer function H(freq)');
+ylabel('-20log(Mag)/N');
+
+subplot(6,1,2); plot(angle(H_freq),'m');
+% axis([0 N -5 5]);
+xlim([0 N]);
+title('Phase of the transfer function H(freq)');
+ylabel('radians');
+
+subplot(6,1,3); plot(-20*log(abs(filter_Weiner))/N);
+axis([0 N -0.05 0.35]);
+% xlim([0 N]);
+title('Absolute value of the Weiner filter transfer function W(freq)');
+ylabel('-20log(Mag)/N');
+
+subplot(6,1,4); plot(angle(filter_Weiner),'m');
+axis([0 N -5 5]);
+title('Phase of the transfer function W(freq)');
+ylabel('radians');
+
+subplot(6,1,5); plot(ifft(filter_Weiner),'r');
+xlim([0 N]);
+title('Time domain response of the Weiner filter');
+ylabel('Amplitude');
+
+subplot(6,1,6); plot(ratio_NbyO/N,'k');
+xlim([0 N]);
+title('Noise-to-Signal ratio');
+ylabel('(Value)/N');
+
+% The Homomorphic filter characteristics - Relevant plots
+figure
+subplot(6,1,1); plot(-20*log(abs(H_freq))/N);
+xlim([0 N]);
+title('Absolute value of the transfer function H(freq)');
+ylabel('-20log(Mag)/N');
+
+subplot(6,1,2); plot(angle(H_freq),'m');
+% axis([0 N -5 5]);
+xlim([0 N]);
+title('Phase of the transfer function H(freq)');
+ylabel('radians');
+
+subplot(6,1,3); plot(-20*log(abs(filter_Homo))/N);
+axis([0 N -0.05 0.18]);
+% xlim([0 N]);
+title('Absolute value of the Homomorphic filter transfer function');
+ylabel('-20log(Mag)/N');
+
+subplot(6,1,4); plot(angle(filter_Homo),'m');
+axis([0 N -5 5]);
+title('Phase of the Homomorphic transfer function');
+ylabel('radians');
+
+subplot(6,1,5); plot(ifft(filter_Homo),'r');
+xlim([0 N]);
+title('Time domain response of the Homomorphic filter');
+ylabel('Amplitude');
+
+subplot(6,1,6); plot(ratio_NbyO/N,'k');
+xlim([0 N]);
+title('Noise-to-Signal ratio');
+ylabel('(Value)/N');
+%------------------------------------------------------------
+% Display the errors of reconstruction
+disp('MSRE errors between the original signal and the signals restored by Inverse filter');
+disp(error_Inv);
+disp('Average error of signal reconstruction by Inverse filter');
+disp(sum(error_Inv)/4);
+disp('MSRE errors between the original signal and the signals restored by Weiner filter');
+disp(error_Weiner);
+disp('Average error of signal reconstruction by Weiner filter');
+disp(sum(error_Weiner)/4);
+disp('MSRE errors between the original signal and the signals restored by Homomorphic filter');
+disp(error_Homo);
+disp('Average error of signal reconstruction by Homomorphic filter');
+disp(sum(error_Homo)/4);
